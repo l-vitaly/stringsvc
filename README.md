@@ -1,16 +1,23 @@
 String Service
 ==============
 
+### Sync vendor
+
+``` bash
+$ cd ./stringsvc
+$ govendor sync
+```
+
 ### Install:
 
-```
+``` bash
 $ go install github.com/l-vitaly/stringsvc/cmd/stringsvc
 $ stringsvc
 ```
 
 ### Build
 
-```
+``` bash
 $ go build github.com/l-vitaly/stringsvc/cmd/stringsvc
 $ ./stringsvc
 ```
@@ -26,6 +33,6 @@ $ ./stringsvc
 
 ### Test
 
-```
+``` bash
 $ go test github.com/l-vitaly/stringsvc/stringsvc_test 
 ```
