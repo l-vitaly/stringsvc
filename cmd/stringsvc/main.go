@@ -21,14 +21,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-const APP_NAME = "stringsvc"
-
 var (
 	githash    = "dev"
 	buildstamp = time.Now().Format(time.RFC822)
-	configName = flag.String("config-name", APP_NAME+"-config", "Set config file name")
 	zipkinAddr = flag.String("zipkin.addr", "", "Zipkin tracing via host:port")
-	consulAddr = flag.String("consulAddr", "", "Consul addr via host:port")
+	consulAddr = flag.String("consulAddr", "localhost:8301", "Consul addr via host:port")
 	host       = flag.String("host", "", "")
 	port       = flag.String("port", "8082", "")
 )
