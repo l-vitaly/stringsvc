@@ -25,9 +25,9 @@ var (
 	githash    = "dev"
 	buildstamp = time.Now().Format(time.RFC822)
 	zipkinAddr = flag.String("zipkin.addr", "", "Zipkin tracing via host:port")
-	consulAddr = flag.String("consulAddr", "localhost:8301", "Consul addr via host:port")
+	consulAddr = flag.String("consulAddr", "localhost:32769", "Consul addr via host:port")
 	host       = flag.String("host", "", "")
-	port       = flag.String("port", "8082", "")
+	port       = flag.String("port", "8099", "")
 )
 
 func init() {
@@ -51,7 +51,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	viper.AddRemoteProvider("consul", *consulAddr, "/config/config.json")
+	viper.AddRemoteProvider("consul", *consulAddr, "/config/stringsvc.config.json")
 	viper.SetConfigType("json")
 
 	err := viper.ReadRemoteConfig()
@@ -59,6 +59,8 @@ func main() {
 		logger.Log("err", "consul error: "+err.Error())
 		os.Exit(1)
 	}
+
+	logger.Log("redis", viper.GetString("redisAddr"))
 
 	if *zipkinAddr == "" {
 		logger.Log("err", "zipkin addr is required")

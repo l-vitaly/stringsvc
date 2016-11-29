@@ -1,0 +1,25 @@
+package: github.com/l-vitaly/stringsvc
+import:
+- package: github.com/go-kit/kit
+  subpackages:
+  - endpoint
+  - log
+  - metrics
+  - metrics/prometheus
+  - tracing/opentracing
+  - transport/grpc
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto
+- package: github.com/l-vitaly/eutils
+- package: github.com/openzipkin/zipkin-go-opentracing
+- package: github.com/prometheus/client_golang
+  subpackages:
+  - prometheus
+- package: github.com/spf13/viper
+  subpackages:
+  - remote
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
