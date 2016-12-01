@@ -1,31 +1,43 @@
-package stringsvc_grpc
+package stringsvcgrpc
 
 import (
 	"golang.org/x/net/context"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/tracing/opentracing"
 	"github.com/go-kit/kit/transport/grpc"
+	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/l-vitaly/eutils"
 	"github.com/l-vitaly/stringsvc"
-	pb "github.com/l-vitaly/stringsvc/stringsvc_pb"
+	"github.com/l-vitaly/stringsvc/stringsvcpb"
+	stdopentracing "github.com/opentracing/opentracing-go"
 )
 
-type gRPCServer struct {
+type server struct {
 	uppercase grpc.Handler
 }
 
 // NewServer makes a set of endpoints.
-func NewServer(ctx context.Context, endpoints stringsvc.Endpoints) *gRPCServer {
-	return &gRPCServer{
+func NewServer(ctx context.Context, endpoints stringsvc.Endpoints,
+	tracer stdopentracing.Tracer, logger log.Logger) pb.StringServer {
+	defaultOpt := []grpctransport.ServerOption{
+		grpctransport.ServerErrorLogger(logger),
+	}
+	uppercaseServerBefore := grpctransport.ServerBefore(
+		opentracing.FromGRPCRequest(tracer, "Uppercase", logger),
+	)
+	return &server{
 		uppercase: grpc.NewServer(
 			ctx,
 			endpoints.UppercaseEndpoint,
 			decodeUppercaseRequest,
 			encodeUppercaseResponse,
+			append(defaultOpt, uppercaseServerBefore)...,
 		),
 	}
 }
 
-func (s *gRPCServer) Uppercase(ctx context.Context, req *pb.UppercaseRequest) (*pb.UppercaseResponse, error) {
+func (s *server) Uppercase(ctx context.Context, req *pb.UppercaseRequest) (*pb.UppercaseResponse, error) {
 	_, resp, err := s.uppercase.ServeGRPC(ctx, req)
 	if err != nil {
 		return nil, err

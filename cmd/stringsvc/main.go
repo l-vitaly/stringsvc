@@ -2,21 +2,29 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
+	"net/http"
+	"net/http/pprof"
 	"os"
-	"strings"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/go-kit/kit/tracing/opentracing"
+
+	"github.com/l-vitaly/consul"
 	"github.com/l-vitaly/stringsvc"
-	"github.com/l-vitaly/stringsvc/stringsvc_grpc"
-	pb "github.com/l-vitaly/stringsvc/stringsvc_pb"
+	pb "github.com/l-vitaly/stringsvc/stringsvcpb"
+
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
+
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/viper"
-	_ "github.com/spf13/viper/remote"
+
+	"github.com/l-vitaly/stringsvc/stringsvcgrpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -24,21 +32,28 @@ import (
 var (
 	githash    = "dev"
 	buildstamp = time.Now().Format(time.RFC822)
-	zipkinAddr = flag.String("zipkin.addr", "", "Zipkin tracing via host:port")
-	consulAddr = flag.String("consulAddr", "localhost:32769", "Consul addr via host:port")
-	host       = flag.String("host", "", "")
-	port       = flag.String("port", "8099", "")
+	debugAddr  = flag.String("debug.addr", "localhost:62101", "Debug addr via host:port")
+	zipkinAddr = flag.String("zipkin.addr", "localhost:9411", "Zipkin tracing via host:port")
+	consulAddr = flag.String("consul.addr", "localhost:8400", "Consul addr via host:port")
+	svcAddr    = flag.String("consul.addr", "localhost:62001", "Consul addr via host:port")
+)
+
+const (
+	SERVICE_NAME = "stringsvc"
+	DEBUG        = true
 )
 
 func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Parse()
 }
 
 func main() {
 	var logger log.Logger
 
-	logger = log.NewLogfmtLogger(os.Stdout)
-	logger = log.NewContext(logger).With("ts", log.DefaultTimestampUTC)
+	logger = log.NewJSONLogger(os.Stdout)
+	logger = log.NewContext(logger).With("@timestamp", log.DefaultTimestampUTC)
+	logger = log.NewContext(logger).With("@message", "info")
 	logger = log.NewContext(logger).With("caller", log.DefaultCaller)
 
 	logger.Log("version", githash)
@@ -46,47 +61,50 @@ func main() {
 	logger.Log("msg", "hello")
 	defer logger.Log("msg", "goodbye")
 
+	if *svcAddr == "" {
+		logger.Log("err", "service addr is required")
+		os.Exit(1)
+	}
+
 	if *consulAddr == "" {
 		logger.Log("err", "consul addr is required")
 		os.Exit(1)
 	}
-
-	viper.AddRemoteProvider("consul", *consulAddr, "/config/stringsvc.config.json")
-	viper.SetConfigType("json")
-
-	err := viper.ReadRemoteConfig()
-	if err != nil {
-		logger.Log("err", "consul error: "+err.Error())
-		os.Exit(1)
-	}
-
-	logger.Log("redis", viper.GetString("redisAddr"))
 
 	if *zipkinAddr == "" {
 		logger.Log("err", "zipkin addr is required")
 		os.Exit(1)
 	}
 
+	consul, err := consul.NewConsulClient(*consulAddr)
+	if err != nil {
+		logger.Log("err", err)
+	}
+
+	err = consul.RegisterService(SERVICE_NAME, *svcAddr)
+	if err != nil {
+		logger.Log("err", err)
+		os.Exit(1)
+	}
+
 	// Metrics.
 	duration := prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-		Namespace: "stringsvc",
+		Namespace: SERVICE_NAME,
 		Name:      "request_duration_ns",
 		Help:      "Request duration in nanoseconds.",
 	}, []string{"method", "success"})
 
 	// Tracing.
-	collector, err := zipkin.NewKafkaCollector(
-		strings.Split(*zipkinAddr, ","),
-		zipkin.KafkaLogger(
-			log.NewContext(logger).With("tracer", "Zipkin"),
-		),
-	)
+	collector, err := zipkin.NewHTTPCollector(fmt.Sprintf("http://%s/api/v1/spans", *zipkinAddr))
 	if err != nil {
 		logger.Log("err", err)
 		os.Exit(1)
 	}
+	recorder := zipkin.NewRecorder(collector, DEBUG, *svcAddr, SERVICE_NAME)
 	tracer, err := zipkin.NewTracer(
-		zipkin.NewRecorder(collector, false, "localhost:80", "stringsvc"),
+		recorder,
+		zipkin.ClientServerSameSpan(true),
+		zipkin.TraceID128Bit(true),
 	)
 	if err != nil {
 		logger.Log("err", err)
@@ -94,6 +112,8 @@ func main() {
 	}
 
 	svc := stringsvc.NewService()
+	svc = stringsvc.ServiceLoggingMiddleware(logger)(svc)
+	svc = stringsvc.ServiceInstrumentingMiddleware()(svc)
 
 	uppercaseDuration := duration.With("method", "Uppercase")
 	uppercaseLogger := log.NewContext(logger).With("method", "Uppercase")
@@ -104,24 +124,51 @@ func main() {
 	uppercaseEndpoint = stringsvc.EndpointLoggingMiddleware(uppercaseLogger)(uppercaseEndpoint)
 
 	endpoints := stringsvc.Endpoints{
-		UppercaseEndpoint: stringsvc.MakeUppercaseEndpoint(svc),
+		UppercaseEndpoint: uppercaseEndpoint,
 	}
 
 	ctx := context.Background()
-	srv := stringsvc_grpc.NewServer(ctx, endpoints)
-
 	errc := make(chan error)
 
-	addr := *host + ":" + *port
+	// Interrupt handler.
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errc <- fmt.Errorf("%s", <-c)
+	}()
 
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		errc <- err
-		return
-	}
+	// Debug handler.
+	go func() {
+		logger := log.NewContext(logger).With("transport", "debug")
 
-	s := grpc.NewServer()
-	pb.RegisterStringServer(s, srv)
+		m := http.NewServeMux()
+		m.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+		m.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		m.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		m.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		m.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		m.Handle("/metrics", stdprometheus.Handler())
 
-	errc <- s.Serve(ln)
+		logger.Log("addr", *debugAddr)
+		errc <- http.ListenAndServe(*debugAddr, m)
+	}()
+
+	go func() {
+		logger := log.NewContext(logger).With("transport", "gRPC")
+
+		listener, err := net.Listen("tcp", *svcAddr)
+		if err != nil {
+			errc <- err
+			return
+		}
+
+		srv := stringsvcgrpc.NewServer(ctx, endpoints, tracer, logger)
+		s := grpc.NewServer()
+		pb.RegisterStringServer(s, srv)
+
+		logger.Log("addr", *svcAddr)
+		errc <- s.Serve(listener)
+	}()
+
+	logger.Log("exit", <-errc)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics"
+	"github.com/l-vitaly/eutils"
 	"golang.org/x/net/context"
 )
 
@@ -29,7 +30,7 @@ func (e Endpoints) Uppercase(ctx context.Context, s string) (string, error) {
 }
 
 // MakeUppercaseEndpoint returns an endpoint that invokes Uppercase on the service.
-func MakeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
+func MakeUppercaseEndpoint(svc StringSvc) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(UppercaseRequest)
 		v, err := svc.Uppercase(ctx, req.S)
@@ -40,12 +41,10 @@ func MakeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
 func EndpointInstrumentingMiddleware(duration metrics.Histogram) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-
 			defer func(begin time.Time) {
 				duration.With("success", fmt.Sprint(err == nil)).Observe(time.Since(begin).Seconds())
 			}(time.Now())
 			return next(ctx, request)
-
 		}
 	}
 }
@@ -53,12 +52,10 @@ func EndpointInstrumentingMiddleware(duration metrics.Histogram) endpoint.Middle
 func EndpointLoggingMiddleware(logger log.Logger) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-
 			defer func(begin time.Time) {
-				logger.Log("error", err, "took", time.Since(begin))
+				logger.Log("error", eutils.Err2Str(err), "took", time.Since(begin))
 			}(time.Now())
 			return next(ctx, request)
-
 		}
 	}
 }

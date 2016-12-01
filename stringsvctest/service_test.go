@@ -1,4 +1,4 @@
-package stringsvc_test
+package stringsvctest
 
 import (
 	"testing"

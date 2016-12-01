@@ -1,14 +1,14 @@
-package stringsvc_grpc
+package stringsvcgrpc
 
 import (
-	pb "github.com/l-vitaly/stringsvc/stringsvc_pb"
+	pb "github.com/l-vitaly/stringsvc/stringsvcpb"
 
 	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/l-vitaly/stringsvc"
 	"google.golang.org/grpc"
 )
 
-func NewClient(conn *grpc.ClientConn) stringsvc.StringService {
+func NewClient(conn *grpc.ClientConn) stringsvc.StringSvc {
 	uppercaseEndpoint := grpctransport.NewClient(
 		conn, "String", "Uppercase", encodeUppercaseRequest, decodeUppercaseResponse, pb.UppercaseResponse{},
 	).Endpoint()

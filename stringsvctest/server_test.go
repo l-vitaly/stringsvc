@@ -1,24 +1,27 @@
-package stringsvc_test
+package stringsvctest
 
 import (
+	"flag"
 	"testing"
 
-	"google.golang.org/grpc"
-
-	"github.com/l-vitaly/stringsvc/stringsvc_grpc"
 	"golang.org/x/net/context"
+
+	"github.com/l-vitaly/stringsvc/stringsvcgrpc"
+	"google.golang.org/grpc"
 )
 
-const DEFAULT_SERVER_ADDR = ":8082"
+var testAddr = flag.String("test.addr", "", "")
 
 func TestGRPCServer(t *testing.T) {
-	conn, err := grpc.Dial(DEFAULT_SERVER_ADDR, grpc.WithInsecure())
+	flag.Parse()
+
+	conn, err := grpc.Dial(*testAddr, grpc.WithInsecure())
 	if err != nil {
-		t.Errorf("Fail dial \"%s\" gRPC service: %s", DEFAULT_SERVER_ADDR, err)
+		t.Errorf("Fail dial \"%s\" gRPC service: %s", *testAddr, err)
 		return
 	}
 
-	svc := stringsvc_grpc.NewClient(conn)
+	svc := stringsvcgrpc.NewClient(conn)
 	for _, tt := range uppercaseProvider {
 		actual, err := svc.Uppercase(context.Background(), tt.value)
 		if err != nil {

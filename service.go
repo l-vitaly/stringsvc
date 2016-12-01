@@ -13,17 +13,19 @@ var (
 	ErrEmpty = errors.New("string empty")
 )
 
-type StringService interface {
+type Middleware func(StringSvc) StringSvc
+
+type StringSvc interface {
 	Uppercase(context.Context, string) (string, error)
 }
 
-type stringService struct{}
+type stringSvc struct{}
 
-func NewService() *stringService {
-	return &stringService{}
+func NewService() StringSvc {
+	return &stringSvc{}
 }
 
-func (*stringService) Uppercase(_ context.Context, s string) (string, error) {
+func (stringSvc) Uppercase(_ context.Context, s string) (string, error) {
 	if s == "" {
 		return s, ErrEmpty
 	}
