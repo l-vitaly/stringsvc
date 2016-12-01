@@ -1,18 +1,20 @@
 String Service
 ==============
 
-### Sync vendor
+### Install Vendor
+
+Install `https://github.com/Masterminds/glide`
 
 ``` bash
-$ cd ./stringsvc
-$ govendor sync
+$ cd $GOPATH/src/github.com/l-vitaly/stringsvc && glide install
 ```
 
 ### Install:
 
 ``` bash
-$ go install github.com/l-vitaly/stringsvc/cmd/stringsvc
-$ stringsvc
+$ cd $GOPATH/src/github.com/l-vitaly/stringsvc && glide install
+$ go install github.com/l-vitaly/stringsvc
+$ $GOPATH/bin/stringsvc
 ```
 
 ### Build
@@ -21,7 +23,6 @@ $ stringsvc
 $ go build github.com/l-vitaly/stringsvc/cmd/stringsvc
 $ ./stringsvc
 ```
-
 
 ### Arguments
 
@@ -37,5 +38,5 @@ $ ./stringsvc
 ### Test
 
 ``` bash
-$ go test github.com/l-vitaly/stringsvc/stringsvc_test 
+$ go test github.com/l-vitaly/stringsvc/stringsvctest 
 ```
