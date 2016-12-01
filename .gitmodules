@@ -1,0 +1,3 @@
+[submodule "stringsvcpb"]
+	path = stringsvcpb
+	url = git@github.com:l-vitaly/stringsvc_pb.git
