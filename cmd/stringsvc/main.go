@@ -35,7 +35,7 @@ var (
 	debugAddr  = flag.String("debug.addr", "localhost:62101", "Debug addr via host:port")
 	zipkinAddr = flag.String("zipkin.addr", "localhost:9411", "Zipkin tracing via host:port")
 	consulAddr = flag.String("consul.addr", "localhost:8400", "Consul addr via host:port")
-	svcAddr    = flag.String("consul.addr", "localhost:62001", "Consul addr via host:port")
+	svcAddr    = flag.String("addr", "localhost:62001", "Service addr via host:port")
 )
 
 const (
