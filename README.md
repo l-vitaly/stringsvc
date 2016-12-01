@@ -25,11 +25,14 @@ $ ./stringsvc
 
 ### Arguments
 
-| Argument      | Description                 | Default
-|---------------|-----------------------------|-----------------------|
-| configName    | Set config file name        | stringsvc-config
-| host          | Listen host name            | 0.0.0.0
-| port          | Listen port                 | 8082
+| Argument      | Description                   | Default
+|---------------|-------------------------------|-----------------------|
+| debug.addr    | Debug address<sup>*</sup>     | 0.0.0.0:62101 
+| zipkin.addr   | Zipkin address<sup>*</sup>    | 0.0.0.0:9411
+| consul.addr   | Consul address<sup>*</sup>    | 0.0.0.0:8500
+| addr          | Service address<sup>*</sup>   | 0.0.0.0:62001
+
+**address this is `host:port` string*
 
 ### Test
 
