@@ -10,17 +10,21 @@ import (
 )
 
 var (
+	// ErrEmpty string empty error
 	ErrEmpty = errors.New("string empty")
 )
 
+// Middleware for StringSvc
 type Middleware func(StringSvc) StringSvc
 
+// StringSvc service interface
 type StringSvc interface {
 	Uppercase(context.Context, string) (string, error)
 }
 
 type stringSvc struct{}
 
+// NewService create new StringSvc service
 func NewService() StringSvc {
 	return &stringSvc{}
 }

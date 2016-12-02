@@ -38,6 +38,10 @@ func MakeUppercaseEndpoint(svc StringSvc) endpoint.Endpoint {
 	}
 }
 
+// EndpointInstrumentingMiddleware returns an endpoint middleware that records
+// the duration of each invocation to the passed histogram. The middleware adds
+// a single field: "success", which is "true" if no error is returned, and
+// "false" otherwise.
 func EndpointInstrumentingMiddleware(duration metrics.Histogram) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
@@ -49,6 +53,8 @@ func EndpointInstrumentingMiddleware(duration metrics.Histogram) endpoint.Middle
 	}
 }
 
+// EndpointLoggingMiddleware returns an endpoint middleware that logs the
+// duration of each invocation, and the resulting error, if any.
 func EndpointLoggingMiddleware(logger log.Logger) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
@@ -60,10 +66,12 @@ func EndpointLoggingMiddleware(logger log.Logger) endpoint.Middleware {
 	}
 }
 
+// UppercaseRequest struct for Uppercase request
 type UppercaseRequest struct {
 	S string `json:"s"`
 }
 
+// UppercaseResponse struct for Uppercase response
 type UppercaseResponse struct {
 	V   string `json:"v"`
 	Err error  `json:"err"`

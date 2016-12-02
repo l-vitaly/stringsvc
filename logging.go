@@ -7,6 +7,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+// ServiceLoggingMiddleware returns a service middleware that logs the
+// parameters and result of each method invocation.
 func ServiceLoggingMiddleware(logger log.Logger) Middleware {
 	return func(next StringSvc) StringSvc {
 		return serviceLoggingMiddleware{
