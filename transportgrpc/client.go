@@ -1,7 +1,7 @@
-package stringsvcgrpc
+package transportgrpc
 
 import (
-	pb "github.com/l-vitaly/stringsvc/stringsvcpb"
+	"github.com/l-vitaly/stringsvc/pb"
 
 	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/l-vitaly/stringsvc"

@@ -14,9 +14,6 @@ var (
 	ErrEmpty = errors.New("string empty")
 )
 
-// Middleware for StringSvc
-type Middleware func(StringSvc) StringSvc
-
 // StringSvc service interface
 type StringSvc interface {
 	Uppercase(context.Context, string) (string, error)

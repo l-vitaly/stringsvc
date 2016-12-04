@@ -18,15 +18,16 @@ import (
 
 	"github.com/l-vitaly/consul"
 	"github.com/l-vitaly/stringsvc"
-	pb "github.com/l-vitaly/stringsvc/stringsvcpb"
+	"github.com/l-vitaly/stringsvc/pb"
 
 	zipkin "github.com/openzipkin/zipkin-go-opentracing"
 
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
-	"github.com/l-vitaly/stringsvc/stringsvcgrpc"
+	"github.com/l-vitaly/stringsvc/transportgrpc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+    "github.com/l-vitaly/stringsvc/middleware"
 )
 
 var (
@@ -112,16 +113,16 @@ func main() {
 	}
 
 	svc := stringsvc.NewService()
-	svc = stringsvc.ServiceLoggingMiddleware(logger)(svc)
-	svc = stringsvc.ServiceInstrumentingMiddleware()(svc)
+    svc = middleware.ServiceInstrumenting()(svc)
+	svc = middleware.ServiceLogging(logger)(svc)
 
 	uppercaseDuration := duration.With("method", "Uppercase")
 	uppercaseLogger := log.NewContext(logger).With("method", "Uppercase")
 
 	uppercaseEndpoint := stringsvc.MakeUppercaseEndpoint(svc)
 	uppercaseEndpoint = opentracing.TraceServer(tracer, "Uppercase")(uppercaseEndpoint)
-	uppercaseEndpoint = stringsvc.EndpointInstrumentingMiddleware(uppercaseDuration)(uppercaseEndpoint)
-	uppercaseEndpoint = stringsvc.EndpointLoggingMiddleware(uppercaseLogger)(uppercaseEndpoint)
+	uppercaseEndpoint = middleware.EndpointInstrumenting(uppercaseDuration)(uppercaseEndpoint)
+	uppercaseEndpoint = middleware.EndpointLogging(uppercaseLogger)(uppercaseEndpoint)
 
 	endpoints := stringsvc.Endpoints{
 		UppercaseEndpoint: uppercaseEndpoint,
@@ -162,7 +163,7 @@ func main() {
 			return
 		}
 
-		srv := stringsvcgrpc.NewServer(ctx, endpoints, tracer, logger)
+		srv := transportgrpc.NewServer(ctx, endpoints, tracer, logger)
 		s := grpc.NewServer()
 		pb.RegisterStringServer(s, srv)
 

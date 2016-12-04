@@ -1,4 +1,4 @@
-package stringsvctest
+package test
 
 import (
 	"flag"
@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/l-vitaly/stringsvc/stringsvcgrpc"
+	"github.com/l-vitaly/stringsvc/transportgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +21,7 @@ func TestGRPCServer(t *testing.T) {
 		return
 	}
 
-	svc := stringsvcgrpc.NewClient(conn)
+	svc := transportgrpc.NewClient(conn)
 	for _, tt := range uppercaseProvider {
 		actual, err := svc.Uppercase(context.Background(), tt.value)
 		if err != nil {
