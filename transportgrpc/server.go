@@ -3,7 +3,6 @@ package transportgrpc
 import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/tracing/opentracing"
-	"github.com/go-kit/kit/transport/grpc"
 	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/l-vitaly/stringsvc"
 	"github.com/l-vitaly/stringsvc/pb"
@@ -12,7 +11,7 @@ import (
 )
 
 type server struct {
-	uppercase grpc.Handler
+	uppercase grpctransport.Handler
 }
 
 // NewServer makes a set of endpoints.
@@ -25,7 +24,7 @@ func NewServer(ctx context.Context, endpoints stringsvc.Endpoints,
 		opentracing.FromGRPCRequest(tracer, "Uppercase", logger),
 	)
 	return &server{
-		uppercase: grpc.NewServer(
+		uppercase: grpctransport.NewServer(
 			ctx,
 			endpoints.UppercaseEndpoint,
 			decodeUppercaseRequest,
