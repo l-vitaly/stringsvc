@@ -1,7 +1,7 @@
 package transportgrpc
 
-// Decode request is a transport/grpc.DecodeRequestFunc that converts a
-// gRPC request to a user-domain request. Primarily useful in a server.
+// Decode request/response is a transport/grpc.DecodeRequestFunc(DecodeResponseFunc)
+// that converts a gRPC request to a user-domain request. Primarily useful in a server.
 
 import (
 	"github.com/l-vitaly/eutils"

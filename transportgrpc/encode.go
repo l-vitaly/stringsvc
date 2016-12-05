@@ -1,7 +1,7 @@
 package transportgrpc
 
-// Encode request is a transport/grpc.EncodeRequestFunc that converts a
-// user-domain request to a gRPC request. Primarily useful in a client.
+// Encode request/response is a transport/grpc.EncodeRequestFunc(EncodeResponseFunc)
+// that converts a user-domain request to a gRPC request. Primarily useful in a client.
 
 import (
 	"github.com/l-vitaly/eutils"
